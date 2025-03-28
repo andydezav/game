@@ -1,15 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game</title>
-  <script src="Game.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Text Effect</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #0a0a0a;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            flex-direction: column;
+            position: relative;
+            color: white;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
 </head>
 <body>
- <div id="game-container">
-    <h1>Welcome to the Game!</h1>
-    <p>Click the button below to start playing.</p>
-    <button id="start-button">Start Game</button>
+    <script>
+        let particles = [];
+        let textString = "HELLO";
+        let fontSize;
+        
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            textFont('Arial');
+            fontSize = min(width, height) * 0.2;
+            generateParticles();
+        }
+        
+        function generateParticles() {
+            particles = [];
+            let spacing = 8;
+            let textGraphics = createGraphics(width, height);
+            textGraphics.pixelDensity(1);
+            textGraphics.textSize(fontSize);
+            textGraphics.fill(255);
+            textGraphics.textAlign(CENTER, CENTER);
+            textGraphics.text(textString, width / 2, height / 2);
+            textGraphics.loadPixels();
+            
+            for (let x = 0; x < textGraphics.width; x += spacing) {
+                for (let y = 0; y < textGraphics.height; y += spacing) {
+                    let index = (x + y * textGraphics.width) * 4;
+                    let brightness = textGraphics.pixels[index];
+                    if (brightness > 128) {
+                        particles.push(new Particle(x + width / 2 - textGraphics.width / 2, y + height / 2 - textGraphics.height / 2));
+                    }
+                }
+            }
+        }
+        
+        function draw() {
+            background(10);
+            for (let p of particles) {
+                p.update(mouseX, mouseY);
+                p.show();
+            }
+        }
+        
+        function keyTyped() {
+            textString += key.toUpperCase();
+            generateParticles();
+        }
+        
+        function keyPressed() {
+            if (keyCode === BACKSPACE) {
+                textString = textString.slice(0, -1);
+                generateParticles();
+            }
+        }
+        
+        class Particle {
+            constructor(x, y) {
+                this.origin = createVector(x, y);
+                this.pos = createVector(x, y);
+                this.vel = createVector(0, 0);
+                this.acc = createVector(0, 0);
+                this.size = 4;
+                this.isDissolving = false; // Start with no dissolve effect
+            }
+            
+            update(mouseX, mouseY) {
+                let maxDist = 100;
+                let distToMouse = p5.Vector.dist(this.pos, createVector(mouseX, mouseY));
+                
+                // Dissolve only if the particle is near the mouse
+                if (distToMouse < maxDist) {
+                    this.isDissolving = true; // Start dissolving when near the cursor
+                    
+                    let direction = p5.Vector.sub(createVector(mouseX, mouseY), this.pos);
+                    direction.normalize();
+                    let force = direction.mult(0.5); // Apply a force away from the mouse
+                    this.acc.add(force);
+                }
+                
+                // If dissolving, apply movement
+                if (this.isDissolving) {
+                    this.vel.add(this.acc);
+                    this.pos.add(this.vel);
+                    this.vel.mult(0.95); // Slow down over time
+                }
+            }
+            
+            show() {
+                noStroke();
+                fill(255);
+                ellipse(this.pos.x, this.pos.y, this.size, this.size);
+            }
+        }
+    </script>
 </body>
 </html>
